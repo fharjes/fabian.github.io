@@ -12,12 +12,14 @@
   </style>
 </head>
 <body>
-  <model-viewer
-    src="Gamecube.glb"
+<model-viewer
+    src="model.glb"
     ar
-    ar-modes="scene-viewer quick-look"
+    ar-modes="scene-viewer"
     camera-controls
-    auto-rotate>
-  </model-viewer>
+    auto-rotate
+    style="width: 100%; height: 100vh;">
+    <button slot="ar-button">View in AR</button>
+</model-viewer>
 </body>
 </html>
