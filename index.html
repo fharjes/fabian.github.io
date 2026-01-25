@@ -2,24 +2,83 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>My 3D AR Model</title>
-  <script type="module"
-    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-  </script>
+  <title>WebAR GameCube</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin: 0; }
-    model-viewer { width: 100vw; height: 100vh; }
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #info {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      display: none;
+      max-width: 90%;
+    }
   </style>
 </head>
 <body>
-<model-viewer
-    src="model.glb"
-    ar
-    ar-modes="scene-viewer"
-    camera-controls
-    auto-rotate
-    style="width: 100%; height: 100vh;">
-    <button slot="ar-button">View in AR</button>
-</model-viewer>
+
+<div id="info">
+  <h3>GameCube CPU</h3>
+  <p>IBM PowerPC "Gekko"<br>485 MHz<br>Custom architecture</p>
+</div>
+
+<script type="module">
+  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
+  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+  import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera();
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  scene.add(light);
+
+  let cpuMesh;
+  const loader = new GLTFLoader();
+  loader.load('model.glb', (gltf) => {
+    const model = gltf.scene;
+    model.scale.set(0.3, 0.3, 0.3);
+    scene.add(model);
+    cpuMesh = model.getObjectByName('CPU');
+  });
+
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  // Tap detection
+  function onSelect(event) {
+    // For touch screen, use the last touch position
+    mouse.x = 0; mouse.y = 0; // center tap for simplicity
+    if (!cpuMesh) return;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(cpuMesh, true);
+    if (intersects.length > 0) {
+      document.getElementById('info').style.display = 'block';
+    }
+  }
+
+  renderer.xr.addEventListener('sessionstart', () => {
+    renderer.xr.getSession().addEventListener('select', onSelect);
+  });
+
+  function animate() {
+    renderer.setAnimationLoop(() => {
+      renderer.render(scene, camera);
+    });
+  }
+  animate();
+</script>
+
 </body>
 </html>
