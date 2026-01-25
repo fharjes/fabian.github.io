@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WebAR GameCube</title>
+  <title>GameCube AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { margin: 0; overflow: hidden; font-family: sans-serif; }
@@ -27,58 +27,68 @@
   <p>IBM PowerPC "Gekko"<br>485 MHz<br>Custom architecture</p>
 </div>
 
+<!-- Three.js and modules via CDN -->
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
 import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera();
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.xr.enabled = true;
-  document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera();
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
 
-  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+// Add AR button
+document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-  scene.add(light);
+// Lighting
+const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+scene.add(light);
 
-  let cpuMesh;
-  const loader = new GLTFLoader();
-  loader.load('model.glb', (gltf) => {
-    const model = gltf.scene;
-    model.scale.set(0.3, 0.3, 0.3);
-    scene.add(model);
-    cpuMesh = model.getObjectByName('CPU');
-  });
+// Load GLB model
+let cpuMesh = null;
+const loader = new GLTFLoader();
+loader.load('gamecube.glb', (gltf) => {
+  const model = gltf.scene;
+  model.scale.set(0.3, 0.3, 0.3);
+  scene.add(model);
 
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-
-  // Tap detection
-  function onSelect(event) {
-    // For touch screen, use the last touch position
-    mouse.x = 0; mouse.y = 0; // center tap for simplicity
-    if (!cpuMesh) return;
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(cpuMesh, true);
-    if (intersects.length > 0) {
-      document.getElementById('info').style.display = 'block';
-    }
+  cpuMesh = model.getObjectByName('CPU');
+  if (!cpuMesh) {
+    console.warn('CPU mesh not found. Make sure it is named exactly "CPU" in Blender.');
   }
+}, undefined, (err) => console.error(err));
 
-  renderer.xr.addEventListener('sessionstart', () => {
-    renderer.xr.getSession().addEventListener('select', onSelect);
-  });
+// Raycaster for tap detection
+const raycaster = new THREE.Raycaster();
+const touch = new THREE.Vector2();
 
-  function animate() {
-    renderer.setAnimationLoop(() => {
-      renderer.render(scene, camera);
-    });
+function onSelect() {
+  if (!cpuMesh) return;
+
+  // Raycast from camera center
+  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+  const intersects = raycaster.intersectObject(cpuMesh, true);
+  if (intersects.length > 0) {
+    document.getElementById('info').style.display = 'block';
   }
-  animate();
+}
+
+// Attach tap listener for AR
+renderer.xr.addEventListener('sessionstart', () => {
+  renderer.xr.getSession().addEventListener('select', onSelect);
+});
+
+// Animation loop
+function animate() {
+  renderer.setAnimationLoop(() => {
+    renderer.render(scene, camera);
+  });
+}
+animate();
+
 </script>
-
 </body>
 </html>
