@@ -1,25 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>My 3D AR Model</title>
-  <script type="module"
-    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instant AR</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
   <style>
     body { margin: 0; }
     model-viewer { width: 100vw; height: 100vh; }
+
+    /* Fullscreen overlay */
+    #overlay {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.65);
+      color: white;
+      font: 600 18px system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+    }
+    #overlay .box {
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.35;
+    }
+    #overlay .hint { opacity: 0.85; font-weight: 400; font-size: 14px; margin-top: 8px; }
   </style>
 </head>
 <body>
+
+<div id="overlay">
+  <div class="box">
+    Tap to open AR
+    <div class="hint">If AR isn’t available, you’ll see the 3D model instead.</div>
+  </div>
+</div>
+
 <model-viewer
-    src="model.glb"
-    ar
-    ar-modes="scene-viewer"
-    camera-controls
-    auto-rotate
-    style="width: 100%; height: 100vh;">
-    <button slot="ar-button">View in AR</button>
+  id="mv"
+  src="model.glb"
+  ar
+  ar-modes="scene-viewer webxr quick-look"
+  camera-controls
+  style="width: 100%; height: 100vh;">
 </model-viewer>
+
+<script>
+  const mv = document.getElementById('mv');
+  const overlay = document.getElementById('overlay');
+
+  overlay.addEventListener('click', async () => {
+    // Try to enter AR. This needs a user gesture (this click).
+    try {
+      await mv.activateAR();
+      // If AR opens, you can hide overlay; if external viewer opens, page may lose focus anyway.
+      overlay.style.display = 'none';
+    } catch (e) {
+      // If AR fails (unsupported), just hide overlay and let user view 3D
+      overlay.style.display = 'none';
+      console.warn('AR activation failed:', e);
+    }
+  }, { once: true });
+</script>
+
 </body>
 </html>
